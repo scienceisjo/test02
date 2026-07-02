@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>무서운 끔찍한 더러운 똥 피하기 게임!</title>
+    <!-- 테일윈드 CSS 로드 (모던한 UI 디자인용) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+        body {
+            font-family: 'Jua', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            touch-action: manipulation;
+        }
+        /* 캔버스 그림자 및 둥글기 효과 */
+        canvas {
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            background: linear-gradient(to bottom, #a1c4fd 0%, #c2e9fb 100%);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen text-gray-800 p-4 overflow-hidden select-none">
+
+    <!-- 게임 컨테이너 -->
+    <div class="relative w-full max-w-md bg-white p-4 rounded-2xl shadow-2xl flex flex-col items-center">
+        <!-- 상단 타이틀 및 최고 점수 -->
+        <div class="w-full flex justify-between items-center mb-2 px-2">
+            <h1 class="text-2xl font-bold text-purple-700">💩 똥 피하기!</h1>
+            <div class="text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded-full">
+                최고 점수: <span id="high-score">0</span>
+            </div>
+        </div>
+
+        <!-- 게임 영역 (캔버스) -->
+        <div class="relative w-full aspect-[3/4] max-h-[500px]">
+            <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+            <!-- 시작 화면 오버레이 -->
+            <div id="start-screen" class="absolute inset-0 bg-black/60 rounded-12px flex flex-col items-center justify-center text-white text-center p-6 rounded-xl">
+                <p class="text-4xl mb-4 animate-bounce">💩🏃💨</p>
+                <h2 class="text-3xl font-bold mb-2">똥 피하기 게임</h2>
+                <p class="text-sm text-gray-300 mb-6">하늘에서 떨어지는 똥을 피하고<br>별(⭐)을 먹어 추가 점수를 획득하세요!</p>
+                <div class="flex flex-col gap-2 w-full max-w-xs">
+                    <button onclick="startGame('easy')" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105">
+                        쉬움 모드 😊
+                    </button>
+                    <button onclick="startGame('normal')" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105">
+                        보통 모드 😎
+                    </button>
+                    <button onclick="startGame('hard')" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105">
+                        어려움 모드 🔥
+                    </button>
+                </div>
+            </div>
+
+            <!-- 일시정지 화면 오버레이 -->
+            <div id="pause-screen" class="hidden absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white text-center p-6 rounded-xl">
+                <h2 class="text-3xl font-bold mb-4">일시정지됨</h2>
+                <button onclick="togglePause()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all">
+                    계속하기
+                </button>
+            </div>
+
+            <!-- 게임오버 화면 오버레이 -->
+            <div id="gameover-screen" class="hidden absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white text-center p-6 rounded-xl">
+                <p class="text-5xl mb-4">💀</p>
+                <h2 class="text-3xl font-bold text-red-500 mb-1">게임 오버!</h2>
+                <p class="text-gray-400 mb-4" id="gameover-reason">앗! 똥에 맞아버렸습니다.</p>
+                
+                <div class="bg-white/10 p-4 rounded-xl mb-6 w-full max-w-xs">
+                    <p class="text-sm text-gray-300">최종 점수</p>
+                    <p class="text-3xl font-bold text-yellow-400" id="final-score">0</p>
+                </div>
+
+                <button onclick="showStartScreen()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all transform hover:scale-105 w-full max-w-xs">
+                    다시 도전하기 🔄
+                </button>
+            </div>
+        </div>
+
+        <!-- 점수 및 생명 표시줄 -->
+        <div class="w-full flex justify-between items-center mt-3 px-2">
+            <div class="text-lg font-bold">
+                점수: <span id="current-score" class="text-purple-600">0</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span class="text-sm text-gray-500 mr-1">생명:</span>
+                <div id="lives-container" class="flex gap-1 text-red-500 text-xl">
+                    ❤️ ❤️ ❤️
+                </div>
+            </div>
+        </div>
+
+        <!-- 모바일 가상 컨트롤러 (터치용) -->
+        <div class="w-full grid grid-cols-2 gap-4 mt-4 md:hidden">
+            <button id="btn-left" class="bg-gray-100 active:bg-gray-300 border-2 border-gray-300 active:border-gray-400 py-4 rounded-xl flex items-center justify-center text-2xl transition-all" style="-webkit-tap-highlight-color: transparent;">
+                ◀️ 왼쪽으로
+            </button>
+            <button id="btn-right" class="bg-gray-100 active:bg-gray-300 border-2 border-gray-300 active:border-gray-400 py-4 rounded-xl flex items-center justify-center text-2xl transition-all" style="-webkit-tap-highlight-color: transparent;">
+                오른쪽으로 ▶️
+            </button>
+        </div>
+
+        <!-- 하단 단축키 가이드 (데스크톱용) -->
+        <div class="hidden md:block text-xs text-gray-400 mt-4 text-center">
+            [좌/우 방향키] 또는 [A / D] 키로 이동 | [P] 키로 일시정지
+        </div>
+    </div>
+
+    <script>
+        // --- 게임 설정 및 상태 관리 ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 반응형 해상도 설정 (3:4 비율 고정)
+        const CANVAS_WIDTH = 480;
+        const CANVAS_HEIGHT = 640;
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+
+        let gameInterval = null;
+        let isPlaying = false;
+        let isPaused = false;
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('poop_high_score')) || 0;
+        document.getElementById('high-score').innerText = highScore;
+
+        let difficulty = 'normal'; // easy, normal, hard
+        let spawnRate = 0.03;      // 똥이 소환될 확률 (프레임당)
+        let baseSpeed = 4;         // 똥 낙하 기본 속도
+
+        // 플레이어 캐릭터 데이터
+        const player = {
+            x: CANVAS_WIDTH / 2 - 20,
+            y: CANVAS_HEIGHT - 60,
+            width: 40,
+            height: 40,
+            speed: 8,
+            velocityX: 0,
+            friction: 0.85,
+            emoji: '🏃'
+        };
+
+        // 장애물(똥) 및 아이템(별) 배열
+        let obstacles = [];
+        let items = [];
+        let particles = []; // 이펙트용 파티클
+        let lives = 3;
+
+        // 키 입력 상태
+        const keys = {};
+
+        // --- 사운드 효과 (Web Audio API 사용으로 외부 파일 없이 재생) ---
+        let audioCtx = null;
+        function playSound(type) {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'start') {
+                    // 시작음: 도-미-솔 경쾌한 상승조
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(261.63, now); // 도
+                    osc.frequency.setValueAtTime(329.63, now + 0.1); // 미
+                    osc.frequency.setValueAtTime(392.00, now + 0.2); // 솔
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if (type === 'item') {
+                    // 아이템 획득음: 청량한 뿅~ 소리
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // 높은 도
+                    osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.15); // 한 옥타브 위
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'hit') {
+                    // 데미지 음: 둔탁한 소리
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'gameover') {
+                    // 게임 오버음: 쓸쓸한 하강조
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.linearRampToValueAtTime(100, now + 0.6);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+                    osc.start(now);
+                    osc.stop(now + 0.7);
+                }
+            } catch (e) {
+                console.log("오디오 재생 실패:", e);
+            }
+        }
+
+        // --- 키보드 이벤트 리스너 ---
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            // P 키로 일시정지 토글
+            if (e.code === 'KeyP') {
+                togglePause();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // --- 모바일 가상 버튼 조작 ---
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+
+        let isTouchLeft = false;
+        let isTouchRight = false;
+
+        btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); isTouchLeft = true; });
+        btnLeft.addEventListener('touchend', () => isTouchLeft = false);
+        btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); isTouchRight = true; });
+        btnRight.addEventListener('touchend', () => isTouchRight = false);
+
+        // 마우스 클릭 대비용 마우스 이벤트 바인딩
+        btnLeft.addEventListener('mousedown', () => isTouchLeft = true);
+        btnLeft.addEventListener('mouseup', () => isTouchLeft = false);
+        btnLeft.addEventListener('mouseleave', () => isTouchLeft = false);
+        btnRight.addEventListener('mousedown', () => isTouchRight = true);
+        btnRight.addEventListener('mouseup', () => isTouchRight = false);
+        btnRight.addEventListener('mouseleave', () => isTouchRight = false);
+
+
+        // --- 파티클 시스템 (이펙트 효과) ---
+        function createExplosion(x, y, color, count = 8) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6 - 2,
+                    radius: Math.random() * 4 + 2,
+                    alpha: 1,
+                    decay: Math.random() * 0.03 + 0.02,
+                    color: color
+                });
+            }
+        }
+
+        // --- 생명 표시 UI 업데이트 ---
+        function updateLivesUI() {
+            const container = document.getElementById('lives-container');
+            container.innerHTML = '❤️ '.repeat(lives) || '💀';
+        }
+
+        // --- 난이도 초기 설정 ---
+        function setDifficulty(diff) {
+            difficulty = diff;
+            if (diff === 'easy') {
+                spawnRate = 0.025;
+                baseSpeed = 3.5;
+                player.speed = 9;
+                lives = 4;
+            } else if (diff === 'normal') {
+                spawnRate = 0.04;
+                baseSpeed = 4.5;
+                player.speed = 8;
+                lives = 3;
+            } else if (diff === 'hard') {
+                spawnRate = 0.06;
+                baseSpeed = 6;
+                player.speed = 7.5;
+                lives = 2;
+            }
+            updateLivesUI();
+        }
+
+        // --- 게임 시작 기능 ---
+        function startGame(mode) {
+            setDifficulty(mode);
+            score = 0;
+            document.getElementById('current-score').innerText = score;
+            
+            // 데이터 초기화
+            obstacles = [];
+            items = [];
+            particles = [];
+            player.x = CANVAS_WIDTH / 2 - player.width / 2;
+            player.velocityX = 0;
+            player.emoji = '🏃';
+
+            // 오버레이 화면 숨기기
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('pause-screen').classList.add('hidden');
+
+            isPlaying = true;
+            isPaused = false;
+
+            playSound('start');
+
+            // 게임 루프 시작
+            if (gameInterval) cancelAnimationFrame(gameInterval);
+            gameLoop();
+        }
+
+        // --- 일시정지 기능 ---
+        function togglePause() {
+            if (!isPlaying) return;
+            isPaused = !isPaused;
+            const pauseScreen = document.getElementById('pause-screen');
+            if (isPaused) {
+                pauseScreen.classList.remove('hidden');
+            } else {
+                pauseScreen.classList.add('hidden');
+                gameLoop(); // 루프 재개
+            }
+        }
+
+        // --- 시작 화면으로 돌아가기 ---
+        function showStartScreen() {
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+
+        // --- 게임오버 처리 ---
+        function gameOver() {
+            isPlaying = false;
+            playSound('gameover');
+
+            // 로컬 스토리지에 최고점수 기록
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('poop_high_score', highScore);
+                document.getElementById('high-score').innerText = highScore;
+            }
+
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('gameover-screen').classList.remove('hidden');
+        }
+
+        // --- 충돌 감지 함수 (AABB) ---
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        // --- 메인 게임 루프 ---
+        function gameLoop() {
+            if (!isPlaying || isPaused) return;
+
+            // 1. 화면 비우기
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // 2. 플레이어 조작 처리
+            if (keys['ArrowLeft'] || keys['KeyA'] || isTouchLeft) {
+                player.velocityX -= 1.2;
+                player.emoji = '🏃‍♂️';
+            } else if (keys['ArrowRight'] || keys['KeyD'] || isTouchRight) {
+                player.velocityX += 1.2;
+                player.emoji = '🏃‍♀️';
+            } else {
+                player.emoji = '🧍';
+            }
+
+            // 마찰력 적용 및 위치 갱신
+            player.velocityX *= player.friction;
+            player.x += player.velocityX;
+
+            // 캔버스 경계 제한
+            if (player.x < 0) {
+                player.x = 0;
+                player.velocityX = 0;
+            }
+            if (player.x > CANVAS_WIDTH - player.width) {
+                player.x = CANVAS_WIDTH - player.width;
+                player.velocityX = 0;
+            }
+
+            // 3. 점수에 따른 점진적 난이도 조절
+            const scoreMultiplier = 1 + Math.min(score / 1500, 1.2); // 최대 2.2배 속도 및 스폰율 상승
+            const currentSpawnRate = spawnRate * (1 + Math.min(score / 2000, 0.5));
+            const currentSpeed = baseSpeed * scoreMultiplier;
+
+            // 4. 새로운 똥(장애물) 생성
+            if (Math.random() < currentSpawnRate) {
+                const size = Math.random() * 15 + 25; // 25px ~ 40px 크기
+                obstacles.push({
+                    x: Math.random() * (CANVAS_WIDTH - size),
+                    y: -size,
+                    width: size,
+                    height: size,
+                    speed: currentSpeed + (Math.random() * 2 - 1), // 개별 낙하 속도 편차 적용
+                    emoji: '💩'
+                });
+            }
+
+            // 5. 새로운 별(보너스 아이템) 생성 (상대적으로 낮은 확률)
+            if (Math.random() < 0.008) {
+                items.push({
+                    x: Math.random() * (CANVAS_WIDTH - 25),
+                    y: -25,
+                    width: 25,
+                    height: 25,
+                    speed: currentSpeed * 0.7,
+                    emoji: '⭐'
+                });
+            }
+
+            // 6. 장애물 업데이트 및 충돌 검사
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.y += obs.speed;
+
+                // 화면 밖으로 나간 똥 제거 및 점수 획득
+                if (obs.y > CANVAS_HEIGHT) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    document.getElementById('current-score').innerText = score;
+                    continue;
+                }
+
+                // 플레이어와 충돌 확인
+                // 좀 더 자비로운 판정을 위해 충돌 히트박스를 실제 스프라이트보다 살짝 좁힘
+                const hitBoxPlayer = { x: player.x + 4, y: player.y + 4, width: player.width - 8, height: player.height - 8 };
+                const hitBoxObs = { x: obs.x + 4, y: obs.y + 4, width: obs.width - 8, height: obs.height - 8 };
+
+                if (checkCollision(hitBoxPlayer, hitBoxObs)) {
+                    createExplosion(obs.x + obs.width/2, obs.y + obs.height/2, '#a16207', 15); // 황토색 파티클 폭발
+                    obstacles.splice(i, 1);
+                    lives--;
+                    updateLivesUI();
+                    playSound('hit');
+
+                    // 일시적 캐릭터 아픔 상태 표시
+                    player.emoji = '🤕';
+
+                    if (lives <= 0) {
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+
+            // 7. 아이템 업데이트 및 획득 검사
+            for (let i = items.length - 1; i >= 0; i--) {
+                const item = items[i];
+                item.y += item.speed;
+
+                if (item.y > CANVAS_HEIGHT) {
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                if (checkCollision(player, item)) {
+                    createExplosion(item.x + item.width/2, item.y + item.height/2, '#fbbf24', 20); // 금빛 파티클 폭발
+                    items.splice(i, 1);
+                    score += 150; // 별 획득시 대량의 보너스 점수!
+                    document.getElementById('current-score').innerText = score;
+                    playSound('item');
+                }
+            }
+
+            // 8. 파티클 업데이트 및 제거
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+
+            // --- 그리프(렌더링) 처리 ---
+
+            // 파티클 그리기
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // 플레이어 그리기
+            ctx.font = `${player.width}px Arial`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(player.emoji, player.x, player.y);
+
+            // 장애물 그리기
+            obstacles.forEach(obs => {
+                ctx.font = `${obs.width}px Arial`;
+                ctx.fillText(obs.emoji, obs.x, obs.y);
+            });
+
+            // 아이템 그리기
+            items.forEach(item => {
+                ctx.font = `${item.width}px Arial`;
+                ctx.fillText(item.emoji, item.x, item.y);
+            });
+
+            // 게임 루프 지속 실행
+            gameInterval = requestAnimationFrame(gameLoop);
+        }
+
+        // 첫 가동 시 캔버스에 가이드 그리기
+        ctx.fillStyle = '#1e1b4b';
+        ctx.font = '24px Jua';
+        ctx.textAlign = 'center';
+        ctx.fillText('모드를 골라 시작해 주세요!', CANVAS_WIDTH/2, CANVAS_HEIGHT/2);
+    </script>
+</body>
+</html>
