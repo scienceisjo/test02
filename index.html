@@ -1,531 +1,858 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>자연스러운 똥 피하기 게임!</title>
-    <!-- 테일윈드 CSS 로드 (모던한 UI 디자인용) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
-        body {
-            font-family: 'Jua', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            touch-action: manipulation;
-        }
-        /* 캔버스 그림자 및 둥글기 효과 */
-        canvas {
-            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
-            border-radius: 12px;
-            background: linear-gradient(to bottom, #a1c4fd 0%, #c2e9fb 100%);
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>소리 실험실 · 진폭 챌린지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#F2F0FB;
+    --bg2:#EAE6FB;
+    --surface:#FFFFFF;
+    --ink:#241E3A;
+    --ink-soft:#6B6483;
+    --line:#E7E3F5;
+    --purple:#7C5CFC;
+    --purple-soft:#EEE9FF;
+    --teal:#2DD4BF;
+    --pink:#FF6B9D;
+    --amber:#FFB020;
+    --rec:#FF4D6D;
+    --shadow:0 10px 30px -12px rgba(60,40,120,.28);
+    --shadow-sm:0 4px 14px -8px rgba(60,40,120,.35);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Gowun Dodum",system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1100px 500px at 85% -8%, #FDE7F1 0%, transparent 55%),
+      radial-gradient(900px 480px at 5% 110%, #DEF6F2 0%, transparent 55%),
+      var(--bg);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    padding:22px 16px 60px;
+  }
+  .wrap{max-width:860px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  header.top{text-align:center;margin-bottom:18px}
+  .eyebrow{
+    display:inline-block;font-size:13px;letter-spacing:.14em;font-weight:700;
+    color:var(--purple);background:var(--purple-soft);
+    padding:5px 13px;border-radius:999px;margin-bottom:12px;
+  }
+  h1{
+    font-family:"Jua",sans-serif;font-weight:400;
+    font-size:clamp(28px,6.5vw,44px);line-height:1.15;margin:0 0 6px;
+    background:linear-gradient(100deg,var(--purple),var(--pink) 60%,var(--amber));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{color:var(--ink-soft);font-size:15px;margin:0}
+
+  .card{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:22px;box-shadow:var(--shadow);
+    padding:20px;margin-bottom:18px;
+  }
+
+  /* ---------- 대사 카드 ---------- */
+  .script-card{
+    background:linear-gradient(135deg,#FFF 0%,#FBF9FF 100%);
+    text-align:center;
+  }
+  .script-label{font-size:13px;color:var(--ink-soft);margin-bottom:10px}
+  .quote{
+    font-family:"Jua",sans-serif;font-size:clamp(22px,5.2vw,32px);
+    color:var(--ink);border:none;background:transparent;text-align:center;
+    width:100%;padding:8px 6px;border-radius:12px;line-height:1.35;
+    outline:2px dashed transparent;transition:outline-color .15s,background .15s;
+  }
+  .quote:hover{outline-color:var(--line)}
+  .quote:focus{outline-color:var(--purple);background:var(--purple-soft)}
+  .edit-hint{font-size:12px;color:var(--ink-soft);margin-top:6px;opacity:.85}
+  .words{
+    display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px;
+  }
+  .word-chip{
+    font-size:15px;padding:6px 14px;border-radius:999px;font-weight:700;
+    background:var(--purple-soft);color:var(--purple);
+  }
+
+  /* ---------- 히어로: 오실로스코프 + VU ---------- */
+  .stage{display:flex;gap:14px;align-items:stretch}
+  .scope-box{
+    flex:1;min-width:0;position:relative;
+    background:linear-gradient(180deg,#2A2350 0%,#221C46 100%);
+    border-radius:18px;overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,.35);
+    aspect-ratio:16/7;
+  }
+  .scope-box canvas{width:100%;height:100%;display:block}
+  .scope-tag{
+    position:absolute;top:10px;left:12px;font-family:"Space Mono",monospace;
+    font-size:11px;letter-spacing:.1em;color:#B9AEF5;opacity:.75;
+  }
+  .rec-dot{
+    position:absolute;top:10px;right:12px;display:none;align-items:center;gap:6px;
+    font-family:"Space Mono",monospace;font-size:11px;color:#FFB9C7;
+  }
+  .rec-dot.on{display:flex}
+  .rec-dot i{width:9px;height:9px;border-radius:50%;background:var(--rec);animation:blink 1s steps(2,jump-none) infinite}
+  @keyframes blink{50%{opacity:.25}}
+
+  .vu-wrap{
+    width:56px;flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;
+  }
+  .vu-track{
+    position:relative;flex:1;width:34px;border-radius:12px;overflow:hidden;
+    background:#241E3A;box-shadow:inset 0 0 0 2px rgba(124,92,252,.25);
+  }
+  .vu-fill{
+    position:absolute;left:0;right:0;bottom:0;height:0%;
+    background:linear-gradient(0deg,#6BCB77 0%,#6BCB77 45%,var(--amber) 72%,var(--pink) 100%);
+    transition:height .05s linear;
+  }
+  .vu-seg{
+    position:absolute;inset:0;
+    background:repeating-linear-gradient(0deg,#241E3A 0 3px,transparent 3px 11px);
+    pointer-events:none;
+  }
+  .vu-peak{
+    position:absolute;left:0;right:0;height:2px;background:#fff;bottom:0;opacity:.85;
+    box-shadow:0 0 6px #fff;transition:bottom .08s linear;
+  }
+  .vu-label{font-family:"Space Mono",monospace;font-size:10px;color:var(--ink-soft);text-align:center;line-height:1.2}
+
+  /* ---------- 컨트롤 ---------- */
+  .controls{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:16px}
+  .rec-btn{
+    font-family:"Jua",sans-serif;font-size:20px;color:#fff;border:none;cursor:pointer;
+    padding:15px 34px;border-radius:999px;
+    background:linear-gradient(120deg,var(--purple),var(--pink));
+    box-shadow:0 12px 26px -10px rgba(124,92,252,.7);
+    transition:transform .12s,box-shadow .12s,filter .12s;
+    display:inline-flex;align-items:center;gap:10px;
+  }
+  .rec-btn:hover{transform:translateY(-2px)}
+  .rec-btn:active{transform:translateY(0)}
+  .rec-btn.recording{background:linear-gradient(120deg,var(--rec),#FF8A5C)}
+  .timer{font-family:"Space Mono",monospace;font-size:15px;color:var(--ink-soft)}
+  .hint-line{font-size:14px;color:var(--ink-soft);text-align:center;max-width:520px}
+  .error{
+    display:none;margin-top:12px;background:#FFF0F3;border:1px solid #FFD3DC;
+    color:#C0304D;border-radius:14px;padding:12px 16px;font-size:14px;text-align:center;
+  }
+  .error.on{display:block}
+
+  /* ---------- 결과 ---------- */
+  .section-title{
+    font-family:"Jua",sans-serif;font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:8px;
+  }
+  .section-desc{font-size:13px;color:var(--ink-soft);margin:0 0 14px}
+  .empty{
+    text-align:center;color:var(--ink-soft);padding:34px 10px;font-size:15px;
+  }
+  .empty .big{font-size:34px;display:block;margin-bottom:8px}
+
+  .panel{margin-bottom:20px}
+  .panel:last-child{margin-bottom:0}
+  .panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .panel-name{font-weight:700;font-size:15px;color:var(--ink)}
+  .panel-note{font-size:12px;color:var(--ink-soft)}
+
+  .plot{position:relative;width:100%;border-radius:14px;background:#FBFAFF;border:1px solid var(--line);overflow:hidden}
+  .plot canvas{width:100%;display:block}
+  .wave-plot{aspect-ratio:16/5}
+  .env-plot{aspect-ratio:16/5}
+  .cursor{position:absolute;top:0;bottom:0;width:2px;background:var(--pink);left:0;opacity:0;pointer-events:none;box-shadow:0 0 8px var(--pink)}
+  .cursor.on{opacity:.9}
+  .flag{
+    position:absolute;transform:translate(-50%,-100%);pointer-events:none;
+    font-family:"Jua",sans-serif;font-size:12px;color:#fff;white-space:nowrap;
+    background:var(--pink);padding:4px 10px;border-radius:10px;top:0;
+    box-shadow:var(--shadow-sm);opacity:0;transition:opacity .3s;
+  }
+  .flag::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:var(--pink)}
+  .flag.on{opacity:1}
+
+  /* 단어 구간 막대 */
+  .bars{display:flex;align-items:flex-end;gap:10px;min-height:150px;padding:6px 2px 0}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+  .bar-track{width:100%;height:120px;display:flex;align-items:flex-end;justify-content:center}
+  .bar-fill{
+    width:100%;max-width:52px;border-radius:8px 8px 4px 4px;
+    background:linear-gradient(0deg,var(--purple),#A78BFA);
+    transition:height .5s cubic-bezier(.2,.8,.2,1);min-height:4px;
+  }
+  .bar-col.top .bar-fill{background:linear-gradient(0deg,var(--pink),#FF9EBE);box-shadow:0 0 0 3px #FFE0EB}
+  .bar-name{font-size:13px;font-weight:700;color:var(--ink);text-align:center;word-break:keep-all;line-height:1.2}
+  .bar-col.top .bar-name{color:var(--pink)}
+  .bar-val{font-family:"Space Mono",monospace;font-size:11px;color:var(--ink-soft)}
+  .bar-crown{font-size:15px;height:18px;line-height:1}
+
+  /* 통계 */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+  .stat{background:var(--purple-soft);border-radius:14px;padding:12px;text-align:center}
+  .stat .k{font-size:12px;color:var(--ink-soft);margin-bottom:4px}
+  .stat .v{font-family:"Space Mono",monospace;font-weight:700;font-size:20px;color:var(--purple)}
+  .stat .u{font-size:11px;color:var(--ink-soft)}
+
+  /* 결과 액션 */
+  .result-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+  .btn{
+    font-family:"Gowun Dodum",sans-serif;font-weight:700;font-size:14px;cursor:pointer;
+    border-radius:999px;padding:10px 18px;border:1.5px solid var(--line);
+    background:#fff;color:var(--ink);transition:transform .1s,background .15s,border-color .15s;
+    display:inline-flex;align-items:center;gap:7px;
+  }
+  .btn:hover{transform:translateY(-1px);border-color:var(--purple)}
+  .btn.primary{background:var(--purple);color:#fff;border-color:var(--purple)}
+  .btn.primary:hover{filter:brightness(1.05)}
+  .save-name{
+    font-family:"Gowun Dodum",sans-serif;font-size:14px;padding:9px 14px;border-radius:999px;
+    border:1.5px solid var(--line);outline:none;min-width:150px;flex:1;
+  }
+  .save-name:focus{border-color:var(--purple)}
+
+  /* ---------- 비교함 ---------- */
+  .compare-plot{aspect-ratio:16/6}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+  .legend-item{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink)}
+  .legend-item .sw{width:16px;height:4px;border-radius:2px}
+  .legend-item button{border:none;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
+  .legend-item button:hover{color:var(--rec)}
+  .compare-empty{font-size:14px;color:var(--ink-soft);text-align:center;padding:24px 10px}
+
+  /* ---------- 설명 ---------- */
+  .explain h2{font-family:"Jua",sans-serif;font-size:20px;margin:0 0 12px;display:flex;gap:8px;align-items:center}
+  .explain p{margin:0 0 12px;font-size:15px}
+  .explain .key{color:var(--purple);font-weight:700}
+  .explain .box{background:var(--purple-soft);border-radius:14px;padding:14px 16px;font-size:14px;color:var(--ink)}
+  .explain .box b{color:var(--pink)}
+
+  footer{text-align:center;color:var(--ink-soft);font-size:12px;margin-top:24px}
+
+  @media (max-width:520px){
+    .stage{flex-direction:row}
+    .vu-wrap{width:46px}
+    .vu-track{width:28px}
+    .stats{grid-template-columns:repeat(3,1fr)}
+    .result-actions{flex-direction:column;align-items:stretch}
+    .save-name{width:100%}
+    .btn{justify-content:center}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition-duration:.01ms !important}
+    .rec-dot i{animation:none}
+  }
+</style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen text-gray-800 p-4 overflow-hidden select-none">
+<body>
+<div class="wrap">
 
-    <!-- 게임 컨테이너 -->
-    <div class="relative w-full max-w-md bg-white p-4 rounded-2xl shadow-2xl flex flex-col items-center">
-        <!-- 상단 타이틀 및 최고 점수 -->
-        <div class="w-full flex justify-between items-center mb-2 px-2">
-            <h1 class="text-2xl font-bold text-purple-700">💩 똥 피하기!</h1>
-            <div class="text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded-full">
-                최고 점수: <span id="high-score">0</span>
-            </div>
+  <header class="top">
+    <span class="eyebrow">🔊 소리 단원 · 진폭 실험</span>
+    <h1>소리 실험실</h1>
+    <p class="sub">단어마다 강세를 바꿔 녹음하고, 소리가 커질 때 진폭이 어떻게 변하는지 눈으로 확인해요</p>
+  </header>
+
+  <!-- 대사 카드 -->
+  <section class="card script-card">
+    <div class="script-label">📣 이 대사를 강세를 넣어 읽어보자 (탭하면 수정 가능)</div>
+    <div class="quote" id="quote" contenteditable="true" spellcheck="false">쌤 저 똥꼬에서 떡볶이가 나와요</div>
+    <div class="edit-hint">✏️ 다른 문장으로 바꿔도 돼요 · 강세 줄 단어를 정하고 녹음 시작!</div>
+    <div class="words" id="words"></div>
+  </section>
+
+  <!-- 히어로 -->
+  <section class="card">
+    <div class="stage">
+      <div class="scope-box">
+        <canvas id="liveCanvas"></canvas>
+        <div class="scope-tag">LIVE · 파형</div>
+        <div class="rec-dot" id="recDot"><i></i>REC</div>
+      </div>
+      <div class="vu-wrap">
+        <div class="vu-track">
+          <div class="vu-fill" id="vuFill"></div>
+          <div class="vu-seg"></div>
+          <div class="vu-peak" id="vuPeak"></div>
         </div>
-
-        <!-- 게임 영역 (캔버스) -->
-        <div class="relative w-full aspect-[3/4] max-h-[500px]">
-            <canvas id="gameCanvas" class="w-full h-full block"></canvas>
-
-            <!-- 시작 화면 오버레이 -->
-            <div id="start-screen" class="absolute inset-0 bg-black/60 rounded-12px flex flex-col items-center justify-center text-white text-center p-6 rounded-xl">
-                <p class="text-4xl mb-4 animate-bounce">💩🏃💨</p>
-                <h2 class="text-3xl font-bold mb-2">똥 피하기 게임</h2>
-                <p class="text-sm text-gray-300 mb-6">하늘에서 떨어지는 똥을 피하고<br>별(⭐)을 먹어 추가 점수를 획득하세요!</p>
-                <div class="flex flex-col gap-2 w-full max-w-xs">
-                    <button onclick="startGame('easy')" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105">
-                        쉬움 모드 😊
-                    </button>
-                    <button onclick="startGame('normal')" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105">
-                        보통 모드 😎
-                    </button>
-                    <button onclick="startGame('hard')" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105">
-                        어려움 모드 🔥
-                    </button>
-                </div>
-            </div>
-
-            <!-- 일시정지 화면 오버레이 -->
-            <div id="pause-screen" class="hidden absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white text-center p-6 rounded-xl">
-                <h2 class="text-3xl font-bold mb-4">일시정지됨</h2>
-                <button onclick="togglePause()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all">
-                    계속하기
-                </button>
-            </div>
-
-            <!-- 게임오버 화면 오버레이 -->
-            <div id="gameover-screen" class="hidden absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white text-center p-6 rounded-xl">
-                <p class="text-5xl mb-4">💀</p>
-                <h2 class="text-3xl font-bold text-red-500 mb-1">게임 오버!</h2>
-                <p class="text-gray-400 mb-4" id="gameover-reason">앗! 똥에 맞아버렸습니다.</p>
-                
-                <div class="bg-white/10 p-4 rounded-xl mb-6 w-full max-w-xs">
-                    <p class="text-sm text-gray-300">최종 점수</p>
-                    <p class="text-3xl font-bold text-yellow-400" id="final-score">0</p>
-                </div>
-
-                <button onclick="showStartScreen()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all transform hover:scale-105 w-full max-w-xs">
-                    다시 도전하기 🔄
-                </button>
-            </div>
-        </div>
-
-        <!-- 점수 및 생명 표시줄 -->
-        <div class="w-full flex justify-between items-center mt-3 px-2">
-            <div class="text-lg font-bold">
-                점수: <span id="current-score" class="text-purple-600">0</span>
-            </div>
-            <div class="flex items-center gap-1">
-                <span class="text-sm text-gray-500 mr-1">생명:</span>
-                <div id="lives-container" class="flex gap-1 text-red-500 text-xl">
-                    ❤️ ❤️ ❤️
-                </div>
-            </div>
-        </div>
-
-        <!-- 모바일 가상 컨트롤러 (터치용) -->
-        <div class="w-full grid grid-cols-2 gap-4 mt-4 md:hidden">
-            <button id="btn-left" class="bg-gray-100 active:bg-gray-300 border-2 border-gray-300 active:border-gray-400 py-4 rounded-xl flex items-center justify-center text-2xl transition-all" style="-webkit-tap-highlight-color: transparent;">
-                ◀️ 왼쪽으로
-            </button>
-            <button id="btn-right" class="bg-gray-100 active:bg-gray-300 border-2 border-gray-300 active:border-gray-400 py-4 rounded-xl flex items-center justify-center text-2xl transition-all" style="-webkit-tap-highlight-color: transparent;">
-                오른쪽으로 ▶️
-            </button>
-        </div>
-
-        <!-- 하단 단축키 가이드 (데스크톱용) -->
-        <div class="hidden md:block text-xs text-gray-400 mt-4 text-center">
-            [좌/우 방향키] 또는 [A / D] 키로 이동 | [P] 키로 일시정지
-        </div>
+        <div class="vu-label">소리<br>크기</div>
+      </div>
     </div>
 
-    <script>
-        // --- 게임 설정 및 상태 관리 ---
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+    <div class="controls">
+      <button class="rec-btn" id="recBtn">🎤 녹음 시작</button>
+      <div class="timer" id="timer">00:00</div>
+      <div class="hint-line" id="hint">버튼을 누르고 대사를 읽으면 위 화면에 파동이 그려져요</div>
+      <div class="error" id="error"></div>
+    </div>
+  </section>
 
-        // 반응형 해상도 설정 (3:4 비율 고정)
-        const CANVAS_WIDTH = 480;
-        const CANVAS_HEIGHT = 640;
-        canvas.width = CANVAS_WIDTH;
-        canvas.height = CANVAS_HEIGHT;
+  <!-- 결과 -->
+  <section class="card" id="resultCard">
+    <h3 class="section-title">📈 녹음 결과 분석</h3>
+    <p class="section-desc">파형의 위아래 폭이 넓을수록 그 순간 소리가 컸다는 뜻이에요</p>
 
-        let gameInterval = null;
-        let isPlaying = false;
-        let isPaused = false;
-        let score = 0;
-        let highScore = parseInt(localStorage.getItem('poop_high_score')) || 0;
-        document.getElementById('high-score').innerText = highScore;
+    <div class="empty" id="emptyState">
+      <span class="big">🎤</span>
+      위 버튼으로 대사를 녹음하면, 소리 크기 그래프가 여기에 나타나요!
+    </div>
 
-        let difficulty = 'normal'; // easy, normal, hard
-        let spawnRate = 0.03;      // 똥이 소환될 확률 (프레임당)
-        let baseSpeed = 4;         // 똥 낙하 기본 속도
+    <div id="resultBody" style="display:none">
+      <!-- 파형 -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-name">① 실제 소리 파동</span>
+          <span class="panel-note">공기가 떨린 모습 그대로</span>
+        </div>
+        <div class="plot wave-plot">
+          <canvas id="waveCanvas"></canvas>
+          <div class="cursor" id="waveCursor"></div>
+        </div>
+      </div>
 
-        // 플레이어 캐릭터 데이터
-        const player = {
-            x: CANVAS_WIDTH / 2 - 20,
-            y: CANVAS_HEIGHT - 60,
-            width: 40,
-            height: 40,
-            speed: 8,
-            velocityX: 0,
-            friction: 0.85,
-            emoji: '🏃'
-        };
+      <!-- 진폭 envelope -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-name">② 소리 크기(진폭) 그래프</span>
+          <span class="panel-note">높이 = 소리의 세기</span>
+        </div>
+        <div class="plot env-plot">
+          <canvas id="envCanvas"></canvas>
+          <div class="cursor" id="envCursor"></div>
+          <div class="flag" id="peakFlag">💥 여기가 제일 셈!</div>
+        </div>
+      </div>
 
-        // 장애물(똥) 및 아이템(별) 배열
-        let obstacles = [];
-        let items = [];
-        let particles = []; // 이펙트용 파티클
-        let lives = 3;
+      <!-- 단어 구간 막대 -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-name">③ 구간별 소리 세기</span>
+          <span class="panel-note" id="barNote">자동으로 끊어 분석 (또박또박 읽으면 더 정확)</span>
+        </div>
+        <div class="bars" id="bars"></div>
+      </div>
 
-        // 키 입력 상태
-        const keys = {};
+      <!-- 통계 -->
+      <div class="stats">
+        <div class="stat"><div class="k">최고 진폭</div><div class="v" id="statMax">0</div><div class="u">가장 센 순간</div></div>
+        <div class="stat"><div class="k">평균 진폭</div><div class="v" id="statAvg">0</div><div class="u">전체 평균</div></div>
+        <div class="stat"><div class="k">최고점 시각</div><div class="v" id="statTime">0.0</div><div class="u">초</div></div>
+      </div>
 
-        // --- 사운드 효과 (Web Audio API 사용으로 외부 파일 없이 재생) ---
-        let audioCtx = null;
-        function playSound(type) {
-            try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
+      <div class="result-actions">
+        <button class="btn primary" id="playBtn">▶ 재생</button>
+        <input class="save-name" id="saveName" placeholder="강세 준 단어 메모 (예: 똥꼬)" />
+        <button class="btn" id="saveBtn">⭐ 비교함에 담기</button>
+      </div>
+    </div>
+  </section>
 
-                const now = audioCtx.currentTime;
+  <!-- 비교함 -->
+  <section class="card">
+    <h3 class="section-title">🆚 비교함</h3>
+    <p class="section-desc">여러 번 녹음해서 겹쳐 보면, 강세 준 단어에 따라 봉우리 위치가 바뀌는 게 보여요</p>
+    <div class="plot compare-plot"><canvas id="compareCanvas"></canvas></div>
+    <div class="legend" id="legend"></div>
+    <div class="compare-empty" id="compareEmpty">아직 담긴 녹음이 없어요. 결과에서 <b>⭐ 비교함에 담기</b>를 눌러보세요!</div>
+  </section>
 
-                if (type === 'start') {
-                    // 시작음: 도-미-솔 경쾌한 상승조
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(261.63, now); // 도
-                    osc.frequency.setValueAtTime(329.63, now + 0.1); // 미
-                    osc.frequency.setValueAtTime(392.00, now + 0.2); // 솔
-                    gain.gain.setValueAtTime(0.15, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-                    osc.start(now);
-                    osc.stop(now + 0.4);
-                } else if (type === 'item') {
-                    // 아이템 획득음: 청량한 뿅~ 소리
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(523.25, now); // 높은 도
-                    osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.15); // 한 옥타브 위
-                    gain.gain.setValueAtTime(0.2, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                    osc.start(now);
-                    osc.stop(now + 0.25);
-                } else if (type === 'hit') {
-                    // 데미지 음: 둔탁한 소리
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(150, now);
-                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
-                    gain.gain.setValueAtTime(0.3, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                    osc.start(now);
-                    osc.stop(now + 0.3);
-                } else if (type === 'gameover') {
-                    // 게임 오버음: 쓸쓸한 하강조
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(300, now);
-                    osc.frequency.linearRampToValueAtTime(100, now + 0.6);
-                    gain.gain.setValueAtTime(0.2, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
-                    osc.start(now);
-                    osc.stop(now + 0.7);
-                }
-            } catch (e) {
-                console.log("오디오 재생 실패:", e);
-            }
-        }
+  <!-- 설명 -->
+  <section class="card explain">
+    <h2>🧪 왜 이렇게 될까?</h2>
+    <p>소리는 공기의 떨림(진동)이에요. 이 떨림이 <span class="key">크게</span> 흔들릴수록 우리 귀에는 <span class="key">큰 소리</span>로 들려요. 파형에서 위아래로 흔들리는 폭을 <span class="key">진폭</span>이라고 부릅니다.</p>
+    <p>단어에 <span class="key">강세</span>를 주면 그 부분을 더 세게 발음하게 되죠. 그러면 공기가 더 크게 떨려서 파형이 쑥 커지고, ② 그래프의 봉우리도 그 자리에서 솟아올라요.</p>
+    <div class="box">
+      💡 <b>진폭</b> = 소리의 <b>크기(세기)</b> · <b>진동수</b> = 소리의 <b>높낮이(음정)</b><br>
+      같은 문장이라도 어느 단어에 힘을 주느냐에 따라 봉우리 위치가 달라져요. 친구랑 번갈아 녹음해서 비교함에서 겹쳐보면 더 재밌어요!
+    </div>
+  </section>
 
-        // --- 키보드 이벤트 리스너 ---
-        window.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            // P 키로 일시정지 토글
-            if (e.code === 'KeyP') {
-                togglePause();
-            }
-        });
-        window.addEventListener('keyup', (e) => {
-            keys[e.code] = false;
-        });
+  <footer>소리 실험실 · 마이크 접근이 안 되면 주소창 자물쇠 아이콘에서 마이크를 허용해 주세요</footer>
+</div>
 
-        // --- 모바일 가상 버튼 조작 ---
-        const btnLeft = document.getElementById('btn-left');
-        const btnRight = document.getElementById('btn-right');
+<script>
+(() => {
+  "use strict";
 
-        let isTouchLeft = false;
-        let isTouchRight = false;
+  // ---------- 요소 ----------
+  const $ = id => document.getElementById(id);
+  const quoteEl = $("quote"), wordsEl = $("words");
+  const liveCanvas = $("liveCanvas"), vuFill = $("vuFill"), vuPeak = $("vuPeak");
+  const recBtn = $("recBtn"), recDot = $("recDot"), timerEl = $("timer");
+  const hintEl = $("hint"), errorEl = $("error");
+  const emptyState = $("emptyState"), resultBody = $("resultBody");
+  const waveCanvas = $("waveCanvas"), waveCursor = $("waveCursor");
+  const envCanvas = $("envCanvas"), envCursor = $("envCursor"), peakFlag = $("peakFlag");
+  const barsEl = $("bars"), barNote = $("barNote");
+  const statMax = $("statMax"), statAvg = $("statAvg"), statTime = $("statTime");
+  const playBtn = $("playBtn"), saveBtn = $("saveBtn"), saveName = $("saveName");
+  const compareCanvas = $("compareCanvas"), legendEl = $("legend"), compareEmpty = $("compareEmpty");
 
-        btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); isTouchLeft = true; });
-        btnLeft.addEventListener('touchend', () => isTouchLeft = false);
-        btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); isTouchRight = true; });
-        btnRight.addEventListener('touchend', () => isTouchRight = false);
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const COMPARE_COLORS = ["#7C5CFC","#2DD4BF","#FF6B9D","#FFB020","#4D96FF","#6BCB77"];
 
-        // 마우스 클릭 대비용 마우스 이벤트 바인딩
-        btnLeft.addEventListener('mousedown', () => isTouchLeft = true);
-        btnLeft.addEventListener('mouseup', () => isTouchLeft = false);
-        btnLeft.addEventListener('mouseleave', () => isTouchLeft = false);
-        btnRight.addEventListener('mousedown', () => isTouchRight = true);
-        btnRight.addEventListener('mouseup', () => isTouchRight = false);
-        btnRight.addEventListener('mouseleave', () => isTouchRight = false);
+  // ---------- 상태 ----------
+  let audioCtx = null, analyser = null, micStream = null, sourceNode = null, mediaRecorder = null;
+  let chunks = [], rafLive = null, rafPlay = null;
+  let isRecording = false, recStart = 0;
+  let currentBuffer = null, currentEnv = null, currentDuration = 0;
+  let audioEl = new Audio(), blobUrl = null;
+  let vuPeakHold = 0;
+  let saves = [];
 
+  // ---------- 캔버스 DPR 세팅 ----------
+  function fitCanvas(canvas){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.round(r.width * dpr));
+    canvas.height = Math.max(1, Math.round(r.height * dpr));
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return { ctx, w: r.width, h: r.height };
+  }
 
-        // --- 파티클 시스템 (이펙트 효과) ---
-        function createExplosion(x, y, color, count = 8) {
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: x,
-                    y: y,
-                    vx: (Math.random() - 0.5) * 6,
-                    vy: (Math.random() - 0.5) * 6 - 2,
-                    radius: Math.random() * 4 + 2,
-                    alpha: 1,
-                    decay: Math.random() * 0.03 + 0.02,
-                    color: color
-                });
-            }
-        }
+  // ---------- 단어 칩 ----------
+  function currentWords(){
+    return (quoteEl.textContent || "").trim().split(/\s+/).filter(Boolean);
+  }
+  function renderWords(){
+    wordsEl.innerHTML = "";
+    currentWords().forEach(w => {
+      const c = document.createElement("span");
+      c.className = "word-chip"; c.textContent = w;
+      wordsEl.appendChild(c);
+    });
+  }
+  quoteEl.addEventListener("input", renderWords);
+  renderWords();
 
-        // --- 생명 표시 UI 업데이트 ---
-        function updateLivesUI() {
-            const container = document.getElementById('lives-container');
-            container.innerHTML = '❤️ '.repeat(lives) || '💀';
-        }
+  // ---------- 아이들 파형 (대기 상태 애니메이션) ----------
+  let idlePhase = 0;
+  function drawIdle(){
+    const { ctx, w, h } = fitCanvas(liveCanvas);
+    ctx.clearRect(0,0,w,h);
+    ctx.lineWidth = 3; ctx.lineCap = "round";
+    const grad = ctx.createLinearGradient(0,0,w,0);
+    grad.addColorStop(0,"#7C5CFC"); grad.addColorStop(.5,"#FF6B9D"); grad.addColorStop(1,"#2DD4BF");
+    ctx.strokeStyle = grad; ctx.globalAlpha = .55;
+    ctx.beginPath();
+    for(let x=0;x<=w;x+=2){
+      const y = h/2 + Math.sin(x*0.02 + idlePhase)*Math.sin(x*0.006 + idlePhase*0.5)*(h*0.13);
+      x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    if(!isRecording){
+      idlePhase += reduceMotion ? 0 : 0.03;
+      requestAnimationFrame(drawIdle);
+    }
+  }
+  drawIdle();
 
-        // --- 난이도 초기 설정 ---
-        function setDifficulty(diff) {
-            difficulty = diff;
-            if (diff === 'easy') {
-                spawnRate = 0.025;
-                baseSpeed = 3.5;
-                player.speed = 9;
-                lives = 4;
-            } else if (diff === 'normal') {
-                spawnRate = 0.04;
-                baseSpeed = 4.5;
-                player.speed = 8;
-                lives = 3;
-            } else if (diff === 'hard') {
-                spawnRate = 0.06;
-                baseSpeed = 6;
-                player.speed = 7.5;
-                lives = 2;
-            }
-            updateLivesUI();
-        }
+  // ---------- 실시간 오실로스코프 + VU ----------
+  function drawLive(){
+    const bufLen = analyser.fftSize;
+    const data = new Uint8Array(bufLen);
 
-        // --- 게임 시작 기능 ---
-        function startGame(mode) {
-            setDifficulty(mode);
-            score = 0;
-            document.getElementById('current-score').innerText = score;
-            
-            // 데이터 초기화
-            obstacles = [];
-            items = [];
-            particles = [];
-            player.x = CANVAS_WIDTH / 2 - player.width / 2;
-            player.velocityX = 0;
-            player.emoji = '🏃';
+    const loop = () => {
+      if(!isRecording) return;
+      rafLive = requestAnimationFrame(loop);
+      analyser.getByteTimeDomainData(data);
 
-            // 오버레이 화면 숨기기
-            document.getElementById('start-screen').classList.add('hidden');
-            document.getElementById('gameover-screen').classList.add('hidden');
-            document.getElementById('pause-screen').classList.add('hidden');
+      // 오실로스코프
+      const { ctx, w, h } = fitCanvas(liveCanvas);
+      ctx.clearRect(0,0,w,h);
 
-            isPlaying = true;
-            isPaused = false;
+      // 중앙선
+      ctx.strokeStyle = "rgba(185,174,245,.18)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0,h/2); ctx.lineTo(w,h/2); ctx.stroke();
 
-            playSound('start');
+      const grad = ctx.createLinearGradient(0,0,w,0);
+      grad.addColorStop(0,"#8B6BFF"); grad.addColorStop(.5,"#FF6B9D"); grad.addColorStop(1,"#2DD4BF");
+      ctx.strokeStyle = grad; ctx.lineWidth = 2.5; ctx.lineJoin = "round";
+      ctx.shadowColor = "rgba(255,107,157,.5)"; ctx.shadowBlur = 8;
+      ctx.beginPath();
+      const step = w / bufLen;
+      let sumSq = 0;
+      for(let i=0;i<bufLen;i++){
+        const v = (data[i]-128)/128;   // -1 ~ 1
+        sumSq += v*v;
+        const x = i*step;
+        const y = h/2 + v*(h*0.42);
+        i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.stroke(); ctx.shadowBlur = 0;
 
-            // 게임 루프 시작
-            if (gameInterval) cancelAnimationFrame(gameInterval);
-            gameLoop();
-        }
+      // VU (RMS 기반)
+      const rms = Math.sqrt(sumSq / bufLen);
+      const level = Math.min(1, rms * 3.2);       // 보기 좋게 스케일
+      vuFill.style.height = (level*100).toFixed(1) + "%";
+      vuPeakHold = Math.max(vuPeakHold*0.94, level);
+      vuPeak.style.bottom = (vuPeakHold*100).toFixed(1) + "%";
+    };
+    loop();
+  }
 
-        // --- 일시정지 기능 ---
-        function togglePause() {
-            if (!isPlaying) return;
-            isPaused = !isPaused;
-            const pauseScreen = document.getElementById('pause-screen');
-            if (isPaused) {
-                pauseScreen.classList.remove('hidden');
-            } else {
-                pauseScreen.classList.add('hidden');
-                gameLoop(); // 루프 재개
-            }
-        }
+  // ---------- 녹음 ----------
+  async function startRecording(){
+    hideError();
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      return showError("이 브라우저는 마이크 녹음을 지원하지 않아요. Chrome이나 Safari 최신 버전을 써보세요.");
+    }
+    try{
+      // autoGainControl 끄기 → 강세에 따른 소리 크기 차이를 그대로 살림 (실험 핵심!)
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+      });
+    }catch(e){
+      const secure = window.isSecureContext;
+      if(!secure){
+        return showError("마이크는 https 주소에서만 작동해요. GitHub Pages 같은 https 주소로 열어주세요.");
+      }
+      return showError("마이크 사용이 거부됐어요. 주소창의 자물쇠 아이콘에서 마이크를 허용한 뒤 다시 눌러주세요.");
+    }
 
-        // --- 시작 화면으로 돌아가기 ---
-        function showStartScreen() {
-            document.getElementById('gameover-screen').classList.add('hidden');
-            document.getElementById('start-screen').classList.remove('hidden');
-        }
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") await audioCtx.resume();
+    sourceNode = audioCtx.createMediaStreamSource(micStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.2;
+    sourceNode.connect(analyser);
 
-        // --- 게임오버 처리 ---
-        function gameOver() {
-            isPlaying = false;
-            playSound('gameover');
+    chunks = [];
+    let mr;
+    try{ mr = new MediaRecorder(micStream); }
+    catch(e){
+      stopTracks();
+      return showError("이 브라우저는 녹음 저장(MediaRecorder)을 지원하지 않아요.");
+    }
+    mediaRecorder = mr;
+    mediaRecorder.ondataavailable = e => { if(e.data && e.data.size>0) chunks.push(e.data); };
+    mediaRecorder.onstop = handleStop;
+    mediaRecorder.start();
 
-            // 로컬 스토리지에 최고점수 기록
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('poop_high_score', highScore);
-                document.getElementById('high-score').innerText = highScore;
-            }
+    isRecording = true; recStart = performance.now();
+    recBtn.textContent = "⏹ 정지"; recBtn.classList.add("recording");
+    recDot.classList.add("on");
+    hintEl.textContent = "듣고 있어요… 대사를 읽어보세요! 🎙";
+    vuPeakHold = 0;
+    drawLive(); tickTimer();
+  }
 
-            document.getElementById('final-score').innerText = score;
-            document.getElementById('gameover-screen').classList.remove('hidden');
-        }
+  function stopRecording(){
+    if(mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+  }
 
-        // --- 충돌 감지 함수 (AABB) ---
-        function checkCollision(rect1, rect2) {
-            return rect1.x < rect2.x + rect2.width &&
-                   rect1.x + rect1.width > rect2.x &&
-                   rect1.y < rect2.y + rect2.height &&
-                   rect1.y + rect1.height > rect2.y;
-        }
+  function stopTracks(){
+    if(micStream) micStream.getTracks().forEach(t => t.stop());
+  }
 
-        // --- 메인 게임 루프 ---
-        function gameLoop() {
-            if (!isPlaying || isPaused) return;
+  function handleStop(){
+    isRecording = false;
+    cancelAnimationFrame(rafLive);
+    recBtn.textContent = "🎤 다시 녹음"; recBtn.classList.remove("recording");
+    recDot.classList.remove("on");
+    hintEl.textContent = "분석 중… ⏳";
+    vuFill.style.height = "0%"; vuPeak.style.bottom = "0%";
+    stopTracks();
+    idlePhase = 0; drawIdle();
 
-            // 1. 화면 비우기
-            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    const type = (mediaRecorder && mediaRecorder.mimeType) || "audio/webm";
+    const blob = new Blob(chunks, { type });
+    if(blobUrl) URL.revokeObjectURL(blobUrl);
+    blobUrl = URL.createObjectURL(blob);
+    audioEl.src = blobUrl;
 
-            // 2. 플레이어 조작 처리
-            if (keys['ArrowLeft'] || keys['KeyA'] || isTouchLeft) {
-                player.velocityX -= 1.2;
-                player.emoji = '🏃‍♂️';
-            } else if (keys['ArrowRight'] || keys['KeyD'] || isTouchRight) {
-                player.velocityX += 1.2;
-                player.emoji = '🏃‍♀️';
-            } else {
-                player.emoji = '🧍';
-            }
+    blob.arrayBuffer()
+      .then(ab => audioCtx.decodeAudioData(ab))
+      .then(buf => { analyze(buf); hintEl.textContent = "완성! 다른 단어에 강세를 줘서 또 녹음해봐요 😄"; })
+      .catch(() => showError("소리를 분석하지 못했어요. 조금 더 길게(2초 이상) 다시 녹음해보세요."));
+  }
 
-            // 마찰력 적용 및 위치 갱신
-            player.velocityX *= player.friction;
-            player.x += player.velocityX;
+  recBtn.addEventListener("click", () => isRecording ? stopRecording() : startRecording());
 
-            // 캔버스 경계 제한
-            if (player.x < 0) {
-                player.x = 0;
-                player.velocityX = 0;
-            }
-            if (player.x > CANVAS_WIDTH - player.width) {
-                player.x = CANVAS_WIDTH - player.width;
-                player.velocityX = 0;
-            }
+  function tickTimer(){
+    if(!isRecording) return;
+    const s = (performance.now()-recStart)/1000;
+    const mm = String(Math.floor(s/60)).padStart(2,"0");
+    const ss = String(Math.floor(s%60)).padStart(2,"0");
+    timerEl.textContent = mm+":"+ss;
+    requestAnimationFrame(tickTimer);
+  }
 
-            // 3. 점수에 따른 점진적 난이도 조절
-            const scoreMultiplier = 1 + Math.min(score / 1500, 1.2); // 최대 2.2배 속도 및 스폰율 상승
-            const currentSpawnRate = spawnRate * (1 + Math.min(score / 2000, 0.5));
-            const currentSpeed = baseSpeed * scoreMultiplier;
+  // ---------- 분석 ----------
+  function computeEnvelope(buffer, points){
+    const ch = buffer.getChannelData(0);
+    const n = ch.length;
+    const win = Math.max(1, Math.floor(n/points));
+    const env = [];
+    for(let i=0;i<points;i++){
+      const start = i*win, end = Math.min(start+win, n);
+      let sum=0, cnt=0;
+      for(let j=start;j<end;j++){ sum += ch[j]*ch[j]; cnt++; }
+      env.push(cnt ? Math.sqrt(sum/cnt) : 0);
+    }
+    return env;
+  }
 
-            // 4. 새로운 똥(장애물) 생성
-            if (Math.random() < currentSpawnRate) {
-                const size = Math.random() * 15 + 25; // 25px ~ 40px 크기
-                obstacles.push({
-                    x: Math.random() * (CANVAS_WIDTH - size),
-                    y: -size,
-                    width: size,
-                    height: size,
-                    speed: currentSpeed + (Math.random() * 2 - 1), // 개별 낙하 속도 편차 적용
-                    emoji: '💩'
-                });
-            }
+  function analyze(buffer){
+    currentBuffer = buffer;
+    currentDuration = buffer.duration;
+    currentEnv = computeEnvelope(buffer, 400);
 
-            // 5. 새로운 별(보너스 아이템) 생성 (상대적으로 낮은 확률)
-            if (Math.random() < 0.008) {
-                items.push({
-                    x: Math.random() * (CANVAS_WIDTH - 25),
-                    y: -25,
-                    width: 25,
-                    height: 25,
-                    speed: currentSpeed * 0.7,
-                    emoji: '⭐'
-                });
-            }
+    emptyState.style.display = "none";
+    resultBody.style.display = "block";
 
-            // 6. 장애물 업데이트 및 충돌 검사
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                const obs = obstacles[i];
-                obs.y += obs.speed;
+    drawWaveform(buffer);
+    const peak = drawEnvelope(currentEnv);
+    drawBars(currentEnv);
 
-                // 화면 밖으로 나간 똥 제거 및 점수 획득
-                if (obs.y > CANVAS_HEIGHT) {
-                    obstacles.splice(i, 1);
-                    score += 10;
-                    document.getElementById('current-score').innerText = score;
-                    continue;
-                }
+    // 통계
+    const max = Math.max(...currentEnv);
+    const avg = currentEnv.reduce((a,b)=>a+b,0)/currentEnv.length;
+    statMax.textContent = (max*100).toFixed(1);
+    statAvg.textContent = (avg*100).toFixed(1);
+    statTime.textContent = (peak.frac * currentDuration).toFixed(2);
 
-                // 플레이어와 충돌 확인
-                // 좀 더 자비로운 판정을 위해 충돌 히트박스를 실제 스프라이트보다 살짝 좁힘
-                const hitBoxPlayer = { x: player.x + 4, y: player.y + 4, width: player.width - 8, height: player.height - 8 };
-                const hitBoxObs = { x: obs.x + 4, y: obs.y + 4, width: obs.width - 8, height: obs.height - 8 };
+    // 커서 초기화
+    waveCursor.classList.remove("on"); envCursor.classList.remove("on");
+    playBtn.textContent = "▶ 재생";
+  }
 
-                if (checkCollision(hitBoxPlayer, hitBoxObs)) {
-                    createExplosion(obs.x + obs.width/2, obs.y + obs.height/2, '#a16207', 15); // 황토색 파티클 폭발
-                    obstacles.splice(i, 1);
-                    lives--;
-                    updateLivesUI();
-                    playSound('hit');
+  function drawWaveform(buffer){
+    const { ctx, w, h } = fitCanvas(waveCanvas);
+    ctx.clearRect(0,0,w,h);
+    const ch = buffer.getChannelData(0);
+    const n = ch.length;
+    const mid = h/2;
 
-                    // 일시적 캐릭터 아픔 상태 표시
-                    player.emoji = '🤕';
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,"#2DD4BF"); grad.addColorStop(.5,"#7C5CFC"); grad.addColorStop(1,"#2DD4BF");
+    ctx.fillStyle = grad;
 
-                    if (lives <= 0) {
-                        gameOver();
-                        return;
-                    }
-                }
-            }
+    const cols = Math.floor(w);
+    const per = n/cols;
+    for(let x=0;x<cols;x++){
+      let min=1, max=-1;
+      const s = Math.floor(x*per), e = Math.min(Math.floor(s+per), n);
+      for(let j=s;j<e;j++){ const v=ch[j]; if(v<min)min=v; if(v>max)max=v; }
+      const y1 = mid + min*mid*0.92;
+      const y2 = mid + max*mid*0.92;
+      ctx.fillRect(x, y1, 1, Math.max(1, y2-y1));
+    }
+    // 중앙선
+    ctx.strokeStyle = "rgba(124,92,252,.2)"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,mid); ctx.lineTo(w,mid); ctx.stroke();
+  }
 
-            // 7. 아이템 업데이트 및 획득 검사
-            for (let i = items.length - 1; i >= 0; i--) {
-                const item = items[i];
-                item.y += item.speed;
+  function drawEnvelope(env){
+    const { ctx, w, h } = fitCanvas(envCanvas);
+    ctx.clearRect(0,0,w,h);
+    const max = Math.max(...env) || 1;
+    const pad = 8;
+    const usableH = h - pad;
 
-                if (item.y > CANVAS_HEIGHT) {
-                    items.splice(i, 1);
-                    continue;
-                }
+    const xAt = i => (i/(env.length-1))*w;
+    const yAt = v => h - (v/max)*usableH;
 
-                if (checkCollision(player, item)) {
-                    createExplosion(item.x + item.width/2, item.y + item.height/2, '#fbbf24', 20); // 금빛 파티클 폭발
-                    items.splice(i, 1);
-                    score += 150; // 별 획득시 대량의 보너스 점수!
-                    document.getElementById('current-score').innerText = score;
-                    playSound('item');
-                }
-            }
+    // 채우기
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,"rgba(255,107,157,.55)");
+    grad.addColorStop(1,"rgba(124,92,252,.08)");
+    ctx.beginPath();
+    ctx.moveTo(0,h);
+    for(let i=0;i<env.length;i++) ctx.lineTo(xAt(i), yAt(env[i]));
+    ctx.lineTo(w,h); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
 
-            // 8. 파티클 업데이트 및 제거
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.alpha -= p.decay;
-                if (p.alpha <= 0) {
-                    particles.splice(i, 1);
-                }
-            }
+    // 윤곽선
+    ctx.beginPath();
+    for(let i=0;i<env.length;i++){ const x=xAt(i), y=yAt(env[i]); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    const line = ctx.createLinearGradient(0,0,w,0);
+    line.addColorStop(0,"#7C5CFC"); line.addColorStop(1,"#FF6B9D");
+    ctx.strokeStyle = line; ctx.lineWidth=2.5; ctx.lineJoin="round"; ctx.stroke();
 
+    // 최고점 표시
+    let peakIdx=0; for(let i=1;i<env.length;i++) if(env[i]>env[peakIdx]) peakIdx=i;
+    const px = xAt(peakIdx), py = yAt(env[peakIdx]);
+    ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2);
+    ctx.fillStyle="#FF6B9D"; ctx.fill();
+    ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.stroke();
 
-            // --- 그리프(렌더링) 처리 ---
+    // 깃발 (DOM) 위치
+    const frac = peakIdx/(env.length-1);
+    peakFlag.style.left = Math.min(88, Math.max(12, frac*100)) + "%";
+    peakFlag.style.top = ((py/h)*100) + "%";
+    peakFlag.classList.add("on");
 
-            // 파티클 그리기
-            particles.forEach(p => {
-                ctx.save();
-                ctx.globalAlpha = p.alpha;
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            });
+    return { frac, peakIdx };
+  }
 
-            // 플레이어 그리기
-            ctx.font = `${player.width}px Arial`;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
-            ctx.fillText(player.emoji, player.x, player.y);
+  // 구간(단어) 자동 분할 후 세기 막대
+  function drawBars(env){
+    barsEl.innerHTML = "";
+    const max = Math.max(...env) || 1;
+    const norm = env.map(v => v/max);
 
-            // 장애물 그리기
-            obstacles.forEach(obs => {
-                ctx.font = `${obs.width}px Arial`;
-                ctx.fillText(obs.emoji, obs.x, obs.y);
-            });
+    // 무음 기준값: 최댓값의 12%
+    const th = 0.12;
+    const segs = [];
+    let cur = null;
+    for(let i=0;i<norm.length;i++){
+      if(norm[i] >= th){
+        if(!cur) cur = { s:i, e:i, peak:norm[i] };
+        else { cur.e=i; if(norm[i]>cur.peak) cur.peak=norm[i]; }
+      } else if(cur){
+        // 짧은 정적(<3칸)은 이어붙임
+        if(i - cur.e <= 3){ cur.e=i; }
+        else { segs.push(cur); cur=null; }
+      }
+    }
+    if(cur) segs.push(cur);
 
-            // 아이템 그리기
-            items.forEach(item => {
-                ctx.font = `${item.width}px Arial`;
-                ctx.fillText(item.emoji, item.x, item.y);
-            });
+    // 너무 짧은 조각 제거
+    const clean = segs.filter(s => (s.e - s.s) >= 3);
 
-            // 게임 루프 지속 실행
-            gameInterval = requestAnimationFrame(gameLoop);
-        }
+    const words = currentWords();
+    const useWords = clean.length === words.length && words.length > 0;
+    barNote.textContent = useWords
+      ? "단어별 소리 세기 · 가장 센 단어에 왕관 👑"
+      : "자동으로 " + clean.length + "구간 감지 (또박또박 끊어 읽으면 단어별로 딱 나뉘어요)";
 
-        // 첫 가동 시 캔버스에 가이드 그리기
-        ctx.fillStyle = '#1e1b4b';
-        ctx.font = '24px Jua';
-        ctx.textAlign = 'center';
-        ctx.fillText('모드를 골라 시작해 주세요!', CANVAS_WIDTH/2, CANVAS_HEIGHT/2);
-    </script>
+    if(clean.length === 0){
+      barsEl.innerHTML = '<div style="color:var(--ink-soft);font-size:14px;margin:auto;text-align:center">소리가 너무 작아요. 조금 더 크게 다시 녹음해볼까요?</div>';
+      return;
+    }
+
+    let topIdx=0; for(let i=1;i<clean.length;i++) if(clean[i].peak>clean[topIdx].peak) topIdx=i;
+
+    clean.forEach((seg,i) => {
+      const col = document.createElement("div");
+      col.className = "bar-col" + (i===topIdx ? " top" : "");
+      const crown = document.createElement("div");
+      crown.className="bar-crown"; crown.textContent = i===topIdx ? "👑" : "";
+      const track = document.createElement("div"); track.className="bar-track";
+      const fill = document.createElement("div"); fill.className="bar-fill";
+      fill.style.height = "4px";
+      track.appendChild(fill);
+      const name = document.createElement("div"); name.className="bar-name";
+      name.textContent = useWords ? words[i] : ("구간 "+(i+1));
+      const val = document.createElement("div"); val.className="bar-val";
+      val.textContent = Math.round(seg.peak*100);
+      col.append(crown, track, name, val);
+      barsEl.appendChild(col);
+      // 애니메이션
+      requestAnimationFrame(() => {
+        fill.style.height = Math.max(4, seg.peak*118) + "px";
+      });
+    });
+  }
+
+  // ---------- 재생 + 커서 ----------
+  playBtn.addEventListener("click", () => {
+    if(!blobUrl) return;
+    if(audioEl.paused){
+      audioEl.play();
+      playBtn.textContent = "⏸ 일시정지";
+      waveCursor.classList.add("on"); envCursor.classList.add("on");
+      followPlayhead();
+    } else {
+      audioEl.pause();
+      playBtn.textContent = "▶ 재생";
+    }
+  });
+  audioEl.addEventListener("ended", () => {
+    playBtn.textContent = "▶ 재생";
+    waveCursor.classList.remove("on"); envCursor.classList.remove("on");
+  });
+  function followPlayhead(){
+    if(audioEl.paused) return;
+    const dur = currentDuration || audioEl.duration || 1;
+    const frac = Math.min(1, audioEl.currentTime / dur);
+    waveCursor.style.left = (frac*100)+"%";
+    envCursor.style.left = (frac*100)+"%";
+    rafPlay = requestAnimationFrame(followPlayhead);
+  }
+
+  // ---------- 비교함 ----------
+  saveBtn.addEventListener("click", () => {
+    if(!currentEnv) return;
+    const label = (saveName.value || "").trim() || ("녹음 " + (saves.length+1));
+    saves.push({
+      label,
+      env: currentEnv.slice(),
+      max: Math.max(...currentEnv),
+      color: COMPARE_COLORS[saves.length % COMPARE_COLORS.length]
+    });
+    saveName.value = "";
+    renderCompare();
+  });
+
+  function renderCompare(){
+    compareEmpty.style.display = saves.length ? "none" : "block";
+    drawCompare();
+    // 범례
+    legendEl.innerHTML = "";
+    saves.forEach((s,idx) => {
+      const item = document.createElement("div"); item.className="legend-item";
+      const sw = document.createElement("span"); sw.className="sw"; sw.style.background=s.color;
+      const name = document.createElement("span"); name.textContent = s.label;
+      const del = document.createElement("button"); del.textContent="✕"; del.title="삭제";
+      del.addEventListener("click", () => { saves.splice(idx,1); renderCompare(); });
+      item.append(sw,name,del); legendEl.appendChild(item);
+    });
+  }
+
+  function drawCompare(){
+    const { ctx, w, h } = fitCanvas(compareCanvas);
+    ctx.clearRect(0,0,w,h);
+    if(!saves.length) return;
+    // 공정 비교: 전체 최댓값으로 통일 스케일
+    const gMax = Math.max(...saves.map(s => s.max)) || 1;
+    const pad = 8, usableH = h-pad;
+    saves.forEach(s => {
+      const env = s.env, len = env.length;
+      ctx.beginPath();
+      for(let i=0;i<len;i++){
+        const x = (i/(len-1))*w;
+        const y = h - (env[i]/gMax)*usableH;
+        i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = s.color; ctx.lineWidth = 2.4; ctx.lineJoin="round";
+      ctx.globalAlpha = .9; ctx.stroke(); ctx.globalAlpha = 1;
+    });
+  }
+
+  // ---------- 에러 ----------
+  function showError(msg){
+    errorEl.textContent = "⚠️ " + msg;
+    errorEl.classList.add("on");
+    hintEl.textContent = "문제가 생겼어요. 위 안내를 확인해주세요.";
+    recBtn.textContent = "🎤 녹음 시작"; recBtn.classList.remove("recording");
+    recDot.classList.remove("on"); isRecording = false;
+  }
+  function hideError(){ errorEl.classList.remove("on"); }
+
+  // ---------- 리사이즈 대응 ----------
+  let resizeT;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(() => {
+      if(currentBuffer){ drawWaveform(currentBuffer); drawEnvelope(currentEnv); }
+      if(saves.length) drawCompare();
+      if(!isRecording) { idlePhase = 0; }
+    }, 150);
+  });
+
+})();
+</script>
 </body>
 </html>
